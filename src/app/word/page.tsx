@@ -1,9 +1,11 @@
 'use client'
 
-import Search from '@/components/layout/search'
+import Search from '@/components/common/search'
 import DashboardLayout from '../dashboardLayout'
 import WordIcon from '@/components/icon/wordIcon'
-import LearningCard from '@/components/layout/learningCard'
+import LearningCard from '@/components/learning/learningCard'
+import DropdownCheckBox from '@/components/common/dropdownCheckBox'
+import ItemCard from '@/components/learning/itemCard'
 
 function Word() {
     return (
@@ -25,32 +27,12 @@ function Word() {
                 {/* 상단 타이틀 */}
                 <div className="flex justify-between">
                     <h1 className="text-2xl font-bold">📚 내 단어장</h1>
-                    <div className="text-sm text-[var(--color-main)]">부가기능</div>
+                    <DropdownCheckBox />
                 </div>
 
                 {/* 카드 리스트 */}
                 <div className="flex-1 overflow-y-auto p-2">
-                    <div className="flex flex-wrap gap-4">
-                        {Array.from({ length: 20 }).map((_, idx) => (
-                            <div
-                                key={idx}
-                                className="flex flex-col justify-between p-4 w-[320px] h-[180px] bg-[var(--color-white)] rounded-lg border border-2 border-[var(--color-main)]"
-                            >
-                                <div className="flex justify-between">
-                                    <div>⭐</div>
-                                    <button>
-                                        <img src="/assets/close.svg" alt="card delete" />
-                                    </button>
-                                </div>
-                                <p className="text-2xl font-bold text-center">wonder</p>
-                                <button className="flex items-center gap-2 justify-center">
-                                    <img src="/assets/volume.svg" alt="volume" />
-                                    <span>경이, 놀라움</span>
-                                </button>
-                                <p className="text-sm text-center">1. 경탄할만한 것</p>
-                            </div>
-                        ))}
-                    </div>
+                    <ItemCard />
                 </div>
             </div>
         </DashboardLayout>
