@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import VideoTab from './videoTab'
 import VideoScript from './videoScript'
+import WordModal from './wordModal'
 import Image from 'next/image'
 
 interface VideoData {
@@ -45,6 +46,7 @@ function parseTimeToSeconds(time: string) {
 
 function VideoLearning({ video, analysisData: initialAnalysisData, onBack, isLoading: initialIsLoading }: Props) {
     const [fontSize, setFontSize] = useState(16)
+    const [isModalOpen, setIsModalOpen] = useState(false)
     const [analysisData, setAnalysisData] = useState<AnalysisData | null>(initialAnalysisData)
     const [selectedSubtitle, setSelectedSubtitle] = useState<SubtitleResult | null>(null)
     const [selectedTab, setSelectedTab] = useState<string>('overview')
@@ -91,13 +93,13 @@ function VideoLearning({ video, analysisData: initialAnalysisData, onBack, isLoa
 
     return (
         <div className="flex flex-col gap-4 h-full">
-            <button onClick={onBack} className="text-[var(--color-main)] font-semibold w-full text-right">
+            <button onClick={onBack} className="text-[var(--color-main)] font-semibold w-full h-2 text-right">
                 &larr; 목록으로
             </button>
 
             <div className="flex flex-col gap-2 flex-1 overflow-hidden">
                 {/* 비디오 + 트랜스크립트 */}
-                <div className="flex flex-row gap-4 w-full h-full">
+                <div className="flex flex-row gap-4 w-full h-[calc(100%-210px)]">
                     <div className="w-full aspect-video bg-gray-300 rounded-sm overflow-hidden">
                         <iframe
                             ref={playerRef}
@@ -108,8 +110,6 @@ function VideoLearning({ video, analysisData: initialAnalysisData, onBack, isLoa
                             className="w-full h-full"
                         />
                     </div>
-
-                    {/* 트랜스크립트 */}
                     <VideoScript
                         analysisData={analysisData}
                         onSubtitleClick={handleSubtitleClick}
@@ -121,7 +121,7 @@ function VideoLearning({ video, analysisData: initialAnalysisData, onBack, isLoa
 
                 {/* 제목 + 부가기능 */}
                 <div className="flex justify-between items-center w-full h-20">
-                    <h3>{video.title}</h3>
+                    <h3 className="flex-1">{video.title}</h3>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setFontSize((prev) => Math.max(12, prev - 4))}>
                             <Image src="/assets/minus.svg" alt="video" width={24} height={24} />
@@ -133,6 +133,12 @@ function VideoLearning({ video, analysisData: initialAnalysisData, onBack, isLoa
                             <Image src="/assets/plus.svg" alt="video" width={24} height={24} />
                         </button>
                     </div>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-[var(--color-main)] text-white px-4 py-2 rounded-md ml-4"
+                    >
+                        추가
+                    </button>
                 </div>
 
                 {/* 하단 탭 메뉴 */}
@@ -150,6 +156,21 @@ function VideoLearning({ video, analysisData: initialAnalysisData, onBack, isLoa
                     isLoading={isLoading}
                 />
             </div>
+
+            {/* 모달 */}
+            {isModalOpen && (
+                <WordModal
+                    title="이 영상을 단어장에 추가할까요?"
+                    description={`"${video.title}"`}
+                    onCancel={() => setIsModalOpen(false)}
+                    onConfirm={() => {
+                        // 추가 로직 위치
+                        setIsModalOpen(false)
+                    }}
+                    confirmText="추가하기"
+                    cancelText="닫기"
+                />
+            )}
         </div>
     )
 }

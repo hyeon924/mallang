@@ -19,21 +19,23 @@ interface WordModalProps {
 }
 
 const dummyWords: Word[] = [
-    { word: 'honest', description: 'Menu description.', checked: true },
-    { word: 'haapy', description: 'Menu description.', checked: true },
-    { word: 'study', description: 'Menu description.', checked: false },
-    { word: 'Menu Label', description: 'Menu description.', checked: true },
-    { word: 'Menu Label', description: 'Menu description.', checked: true },
+    { word: 'honest', checked: true },
+    { word: 'happy', checked: true },
+    { word: 'study', checked: false },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
+    { word: 'Menu Label', checked: true },
 ]
 
-const WordModal = ({
-    title,
-    description,
-    onCancel,
-    onConfirm,
-    confirmText = '추가',
-    cancelText = '닫기',
-}: WordModalProps) => {
+const dummyLists: string[] = ['기본', '드라마', '영화', '노래']
+
+const WordModal = ({ title, onCancel, onConfirm, confirmText = '추가', cancelText = '닫기' }: WordModalProps) => {
     const [wordList, setWordList] = useState<Word[]>(dummyWords)
     const [selectedList, setSelectedList] = useState('기본')
 
@@ -46,16 +48,28 @@ const WordModal = ({
     return (
         <div className="fixed inset-0 flex justify-center items-center bg-black/50 z-50">
             <div className="bg-white w-[340px] max-h-[90vh] rounded-xl p-5 shadow-xl overflow-y-auto">
-                <p className="text-sm text-gray-500">영상 제목</p>
-                <h2 className="text-xl font-bold mb-4">{title}</h2>
+                {/* 드롭다운 */}
+                <div className="mb-6">
+                    <label className="text-sm font-semibold mb-1 block">단어장 선택</label>
+                    <select
+                        value={selectedList}
+                        onChange={(e) => setSelectedList(e.target.value)}
+                        className="w-full border rounded-md px-3 py-2 text-sm"
+                    >
+                        {dummyLists.map((list, idx) => (
+                            <option key={idx} value={list}>
+                                {list}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 {/* 단어 리스트 */}
-                <div className="flex flex-col gap-4 border-t border-gray-200 pt-4">
+                <div className="flex flex-col gap-4 border-t border-gray-200 pt-4 overflow-y-auto h-[300px] pr-2">
                     {wordList.map((word, idx) => (
                         <div key={idx} className="flex items-center justify-between border-b pb-3">
                             <div>
                                 <p className="font-bold">{word.word}</p>
-                                <p className="text-sm text-gray-500">{word.description}</p>
                             </div>
                             <input
                                 type="checkbox"
@@ -67,28 +81,16 @@ const WordModal = ({
                     ))}
                 </div>
 
-                {/* 드롭다운 */}
-                <div className="mt-6">
-                    <label className="text-sm font-semibold mb-1 block">단어장 선택</label>
-                    <select
-                        value={selectedList}
-                        onChange={(e) => setSelectedList(e.target.value)}
-                        className="w-full border rounded-md px-3 py-2 text-sm"
-                    >
-                        <option value="기본">기본</option>
-                        <option value="드라마">드라마</option>
-                        <option value="영화">영화</option>
-                        <option value="노래">노래</option>
-                    </select>
-                </div>
-
                 {/* 버튼 */}
-                <div className="flex justify-end gap-2 mt-6">
-                    <button className="text-gray-500 hover:underline text-sm" onClick={onCancel}>
+                <div className="flex justify-between gap-2 mt-6">
+                    <button
+                        className="bg-[var(--color-warning)] text-[var(--color-white)] px-4 py-2 rounded text-sm"
+                        onClick={onCancel}
+                    >
                         {cancelText}
                     </button>
                     <button
-                        className="bg-[var(--color-main)] text-white px-4 py-2 rounded text-sm"
+                        className="bg-[var(--color-main)] text-[var(--color-white)] px-4 py-2 rounded text-sm"
                         onClick={() =>
                             onConfirm(
                                 wordList.filter((w) => w.checked),
