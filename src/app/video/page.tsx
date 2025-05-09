@@ -1,59 +1,64 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import DashboardLayout from '../dashboardLayout'
 import VideoIcon from '@/components/icon/videoIcon'
 import Search from '@/components/common/search'
 import { useRouter } from 'next/navigation'
+import { VideoData } from '@/types/video'
+import client from '@/lib/backend/client'
 
-interface VideoData {
-    videoId: string
-    title: string
-    description: string
-    thumbnailUrl?: string | null // 없을 수도 있으니까 optional, null 허용
+// 카테고리 타입 정의
+type Category = {
+    id: number
+    label: string
 }
 
+// 카테고리 상수 정의
+const CATEGORIES = {
+    ALL: { id: 0, label: '전체' },
+    SONG: { id: 10, label: '노래' },
+    DRAMA: { id: 36, label: '드라마' },
+    MOVIE: { id: 30, label: '영화' },
+    NEW: { id: -1, label: '새로온 맞춤 동영상' },
+} as const
+
 function Video() {
-    const url = process.env.NEXT_PUBLIC_API_URL
+    const url = process.env.NEXT_PUBLIC_MOCK_URL
     const router = useRouter()
+    const isFirstRender = useRef(true)
 
-    const [selectedCategory, setSelectedCategory] = useState<string>('전체') // 선택된 카테고리 상태 추가
-
-    const dummyVideos: VideoData[] = [
-        {
-            videoId: '1',
-            title: 'React 기초',
-            description: 'React를 배워보자',
-            thumbnailUrl: null, // 실제 이미지 없으면 null
-        },
-        {
-            videoId: '2',
-            title: '노마드 코더 강의',
-            description: '코딩 시작하기',
-            thumbnailUrl: null,
-        },
-        {
-            videoId: '3',
-            title: '드라마로 배우는 영어',
-            description: '재밌게 배우는 영어',
-            thumbnailUrl: null,
-        },
-    ]
-
-    const [videoList, setVideoList] = useState<VideoData[]>(dummyVideos)
+    const [selectedCategory, setSelectedCategory] = useState<Category>(CATEGORIES.ALL)
+    const [searchKeyword, setSearchKeyword] = useState<string>('')
+    const [videoList, setVideoList] = useState<VideoData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    // api/v1/video/list 호출 -- 검색어, 카테고리 미추가 (추후 추가)
+    // api/v1/video/list 호출
     useEffect(() => {
         const loadVideos = async () => {
             try {
-                const response = await fetch(`${url}/api/v1/video/list`)
-                if (!response.ok) {
+                setIsLoading(true)
+                const { data, error } = await client.GET('/api/v1/videos/list', {
+                    params: {
+                        query: {
+                            maxResults: 10,
+                            ...(selectedCategory.id !== 0 && { category: String(selectedCategory.id) }),
+                            ...(searchKeyword && { q: searchKeyword.trim().toLowerCase() }),
+                        },
+                    },
+                })
+
+                if (error) {
+                    console.error('API 오류:', error)
                     throw new Error('비디오 리스트를 불러오는데 실패했습니다.')
                 }
-                const data = await response.json()
-                setVideoList(data.data)
+
+                console.log('비디오 데이터:', data)
+                if (data?.data) {
+                    // @ts-ignore - 타입 에러 무시
+                    setVideoList(data.data)
+                }
             } catch (err) {
                 setError('비디오 리스트를 불러오는데 실패했습니다.')
                 console.error(err)
@@ -62,44 +67,71 @@ function Video() {
             }
         }
 
-        loadVideos()
-    }, [])
-
-    const handleSearch = (keyword: string) => {
-        const trimmed = keyword.trim().toLowerCase()
-
-        if (!trimmed) {
-            // 1. 검색어 비었을 경우: 전체 리스트
-            setVideoList(dummyVideos)
+        // 첫 렌더링 시에는 실행하지 않음
+        if (isFirstRender.current) {
+            isFirstRender.current = false
             return
         }
 
-        const filtered = dummyVideos.filter(
-            (video) => video.title.toLowerCase().includes(trimmed) || video.description.toLowerCase().includes(trimmed),
-        )
+        loadVideos()
+    }, [selectedCategory, searchKeyword])
 
-        // 2. 결과 있으면 → 필터된 결과, 없으면 → 빈 배열
-        setVideoList(filtered)
+    // 컴포넌트 마운트 시 최초 1회 데이터 로드
+    useEffect(() => {
+        const loadInitialVideos = async () => {
+            try {
+                setIsLoading(true)
+                const { data, error } = await client.GET('/api/v1/videos/list', {
+                    params: {
+                        query: {
+                            maxResults: 10,
+                        },
+                    },
+                })
+
+                if (error) {
+                    console.error('API 오류:', error)
+                    throw new Error('비디오 리스트를 불러오는데 실패했습니다.')
+                }
+
+                if (data?.data) {
+                    // @ts-ignore - 타입 에러 무시
+                    setVideoList(data.data)
+                }
+            } catch (err) {
+                setError('비디오 리스트를 불러오는데 실패했습니다.')
+                console.error(err)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        loadInitialVideos()
+    }, [])
+
+    const handleSearch = (keyword: string) => {
+        setSearchKeyword(keyword)
     }
 
     // 비디오 클릭 핸들러
     const handleVideoClick = (video: VideoData) => {
-        router.push(`/video-learning/${video.videoId}`)
+        // URL 쿼리 파라미터로 비디오 정보 전달
+        const queryParams = new URLSearchParams({
+            title: video.title || '',
+            description: video.description || '',
+        }).toString()
+
+        // thumbnailUrl이 있는 경우에만 추가
+        const thumbnailParam = video.thumbnailUrl ? `&thumbnail=${encodeURIComponent(video.thumbnailUrl)}` : ''
+
+        router.push(`/video-learning/${video.videoId}?${queryParams}${thumbnailParam}`)
     }
 
     // 카테고리 버튼 동작
-    const handleCategoryClick = (category: string) => {
-        if (selectedCategory === category) return
+    const handleCategoryClick = (category: (typeof CATEGORIES)[keyof typeof CATEGORIES]) => {
+        if (selectedCategory.id === category.id) return
         setSelectedCategory(category)
-        // const filtered = category === '전체' ? dummyVideos : dummyVideos.filter((video) => video.category === category)
-        // setVideoList(filtered)
     }
-
-    // 카테고리, 검색어 변경 작동 확인 로그
-    // useEffect(() => {
-    //     console.log(selectedCategory)
-    //     console.log(searchKeyword)
-    // }, [selectedCategory, searchKeyword])
 
     return (
         <DashboardLayout title="Video Learning" icon={<VideoIcon />}>
@@ -110,17 +142,17 @@ function Video() {
 
                     {/* 카테고리 버튼들 */}
                     <div className="flex gap-2">
-                        {['전체', '노래', '드라마', '영화', '새로온 맞춤 동영상'].map((label) => (
+                        {Object.values(CATEGORIES).map((category) => (
                             <button
-                                key={label}
-                                onClick={() => handleCategoryClick(label)}
+                                key={category.id}
+                                onClick={() => handleCategoryClick(category)}
                                 className={`px-3 py-1 rounded text-sm font-medium ${
-                                    selectedCategory === label
+                                    selectedCategory.id === category.id
                                         ? 'bg-[var(--color-main)] text-white'
                                         : 'bg-[var(--color-sub-1)] text-white'
                                 }`}
                             >
-                                {label}
+                                {category.label}
                             </button>
                         ))}
                     </div>
@@ -137,7 +169,7 @@ function Video() {
                             {video.thumbnailUrl && video.thumbnailUrl.trim() !== '' ? (
                                 <img
                                     src={video.thumbnailUrl}
-                                    alt={video.title}
+                                    alt={video.title || ''}
                                     className="w-120 h-80 object-cover rounded-md"
                                 />
                             ) : (
@@ -146,9 +178,11 @@ function Video() {
                                 </div>
                             )}
                             <div className="flex flex-col">
-                                <p className="text-lg font-bold">{video.title}</p>
+                                <p className="text-lg font-bold">{video.title || 'Untitled'}</p>
                                 <p className="text-lg text-gray-500">조회수 0회</p>
-                                <p className="text-sm text-gray-700 mt-2 line-clamp-12">{video.description}</p>
+                                <p className="text-sm text-gray-700 mt-2 line-clamp-12">
+                                    {video.description || 'No description available'}
+                                </p>
                             </div>
                         </div>
                     ))}
